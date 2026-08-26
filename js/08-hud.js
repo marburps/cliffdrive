@@ -161,10 +161,10 @@ function drawTachometer(cx,cy,r){
   ctx.textAlign='center';ctx.textBaseline='alphabetic';
   ctx.fillText(Math.round(rpm).toString(),cx,cy+r*0.55);
 
-  ctx.fillStyle=isReverse?'#ff4444':'#ffffff';
+  ctx.fillStyle='#ffffff';
   ctx.font='bold '+Math.max(14,r*0.3)+'px "Courier New",monospace';
   ctx.textAlign='center';
-  ctx.fillText(isReverse ? 'R' : gear.toString(),cx+r*0.35,cy+r*0.05);
+  ctx.fillText(gear.toString(),cx+r*0.35,cy+r*0.05);
   ctx.fillStyle='#667';
   ctx.font=Math.max(7,r*0.09)+'px sans-serif';
   ctx.fillText('GEAR',cx+r*0.35,cy+r*0.2);
@@ -283,7 +283,7 @@ function drawRightCluster(cx,cy,r){
   for(let g=1;g<=6;g++){
     const t=(g-1)/5;
     const gy=sBot-t*stickH;
-    const active=(g===gear && !isReverse);
+    const active=(g===gear);
     ctx.fillStyle=active?'rgba(120,230,255,0.95)':'rgba(140,150,170,0.45)';
     ctx.beginPath();
     ctx.arc(cx+stickW/2+r*0.1,gy,active?r*0.045:r*0.03,0,Math.PI*2);

@@ -46,7 +46,7 @@ function update(dt){
       playerX = 0; speed = 0; accel = 0; braking = 0; steer = 0;
       carHeading = roadAngle;   // realign the car with the road on respawn
       playerAngle = 0;
-      prevPlayerX = 0; lateralVel = 0; gear = 1; rpm = 800; isReverse = false;
+      prevPlayerX = 0; lateralVel = 0; gear = 1; rpm = 800;
     }
     damageFlash *= 0.92;
     updatePopups(dt);
@@ -81,8 +81,7 @@ function update(dt){
 
   const gearCap = GEAR_MAX[gear - 1];
   let effectiveAccel = accel;
-  if(isReverse) effectiveAccel *= 0.35;
-  if(!isReverse && speed >= gearCap * 0.85){
+  if(speed >= gearCap * 0.85){
     const proximity = (speed - gearCap*0.85) / (gearCap*0.15);
     effectiveAccel *= Math.max(0, 1 - proximity);
   }
@@ -98,19 +97,14 @@ function update(dt){
   const dy = segNext.y - segNow.y;
   speed -= dy * 0.2 * dt;
 
-  if(!isReverse && speed > gearCap){
+  if(speed > gearCap){
     speed -= DOWNSHIFT_DECEL * dt;
     if(speed < gearCap) speed = gearCap;
   }
-  if(isReverse) speed = Math.min(speed, maxSpeed * 0.12);
-  
+
   speed = Math.max(0, speed);
 
-  if(isReverse){
-    const revMax = maxSpeed * 0.12;
-    const targetRPM = 800 + Math.min(1, speed / revMax) * 1500;
-    rpm += (targetRPM - rpm) * (1 - Math.pow(0.01, dt));
-  } else if(speed < 50){
+  if(speed < 50){
     rpm += (GEAR_RPM_MIN - rpm) * (1 - Math.pow(0.01, dt));
   } else {
     const targetRPM = GEAR_RPM_MIN + (speed / gearCap) * (GEAR_RPM_MAX - GEAR_RPM_MIN);
@@ -133,7 +127,7 @@ function update(dt){
   // into "along the road" and "across the road":
   const ds = vW * Math.cos(psi) * dt;
   position += ds;
-  if (!raceStarted) distance += ds; // race distance only counts after the start line
+  distance += ds;
 
   // ── LAP DETECTION ──
   const completedLaps = Math.floor(position / TRACK_LENGTH);

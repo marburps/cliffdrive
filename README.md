@@ -19,7 +19,7 @@ Then visit `http://localhost:8000` (or the port shown by your server).
 | Key | Action |
 | --- | ------ |
 | `ArrowUp` | Accelerate |
-| `ArrowDown` | Brake / reverse |
+| `ArrowDown` | Brake |
 | `ArrowLeft` / `ArrowRight` | Steer |
 
 ## Project Structure

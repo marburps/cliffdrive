@@ -91,60 +91,56 @@ function drawTunnelSign() {
 
 function drawStartFinishArch(p, q, x1, y1, h1, x2, y2, h2, shade) {
   const idx = p.idx;
-  if (idx > 4 && idx < ROAD_LEN - 4) return;
+  if (idx !== 0) return;
   if (h1 < 2.5) return;
 
-  const spanX    = h1 * 1.35;
-  const archH    = h1 * 2.3;
-  const leftX    = x1 - spanX;
-  const rightX   = x1 + spanX;
-  const baseY    = y1;
-  const peakY    = y1 - archH;
-  const postTopY = y1 - archH * 0.5;
-  const bandT    = Math.max(3, h1 * 0.2);
-  const midX     = x1;
-  const ctrlY    = 2 * peakY - postTopY;            // makes the bow peak at peakY
-  const ctrlYin  = 2 * (peakY + bandT) - (postTopY + bandT);
+  const spanX1  = h1 * 1.3;
+  const spanX2  = h2 * 1.3;
+  const L1 = x1 - spanX1, R1 = x1 + spanX1;
+  const L2 = x2 - spanX2, R2 = x2 + spanX2;
+  const archH1 = h1 * 1.5;
+  const archH2 = h2 * 1.5;
+  const T1 = archH1 * 0.5;
+  const T2 = archH2 * 0.5;
+  const O1y = y1 - archH1;              // outer peak (top of the arch)
+  const O2y = y2 - archH2;
+  const I1y = y1 - archH1 + T1;         // inner peak (bottom of the band)
+  const I2y = y2 - archH2 + T2;
+  // quadratic control points that make each bow peak at the given height
+  const cO1 = 2 * O1y - y1;
+  const cO2 = 2 * O2y - y2;
 
   ctx.save();
   ctx.globalAlpha = Math.min(1, shade + 0.15);
 
-  // ── Tapered metallic posts ──
-  const pwTop = Math.max(2, h1 * 0.055);
-  const pwBot = Math.max(3, h1 * 0.1);
-  const postGrad = ctx.createLinearGradient(0, postTopY, 0, baseY);
-  postGrad.addColorStop(0, `rgb(${160+shade*35},${165+shade*35},${175+shade*35})`);
-  postGrad.addColorStop(1, `rgb(${70+shade*30},${75+shade*30},${85+shade*30})`);
-  ctx.fillStyle = postGrad;
-  for (const px of [leftX, rightX]) {
-    ctx.beginPath();
-    ctx.moveTo(px - pwBot/2, baseY);
-    ctx.lineTo(px - pwTop/2, postTopY);
-    ctx.lineTo(px + pwTop/2, postTopY);
-    ctx.lineTo(px + pwBot/2, baseY);
-    ctx.closePath();
-    ctx.fill();
-  }
+  // ── Top surface (arch extruded one segment deep) ──
+  ctx.fillStyle = `rgb(${42+shade*22},${45+shade*22},${54+shade*24})`;
+  ctx.beginPath();
+  ctx.moveTo(L1, y1);
+  ctx.quadraticCurveTo(x1, cO1, R1, y1);          // outer near edge
+  ctx.lineTo(R2, y2);
+  ctx.quadraticCurveTo(x2, cO2, L2, y2);          // outer far edge (reversed)
+  ctx.closePath();
+  ctx.fill();
 
-  // ── Curved checkered bow band ──
-  const band = new Path2D();
-  band.moveTo(leftX, postTopY);
-  band.quadraticCurveTo(midX, ctrlY, rightX, postTopY);      // top edge
-  band.lineTo(rightX, postTopY + bandT);
-  band.quadraticCurveTo(midX, ctrlYin, leftX, postTopY + bandT); // inner edge
-  band.closePath();
+  // ── Front face: solid checkered band curbing from the ground ──
+  const face = new Path2D();
+  face.moveTo(L1, y1);
+  face.quadraticCurveTo(x1, cO1, R1, y1);         // outer edge
+  face.quadraticCurveTo(x1, 2 * I1y - y1, L1, y1);// inner edge
+  face.closePath();
 
   ctx.fillStyle = '#111';
-  ctx.fill(band);
+  ctx.fill(face);
 
   if (h1 > 5) {
     ctx.save();
-    ctx.clip(band);                                            // checkers only inside the bow
-    const cell = Math.max(3, (rightX - leftX) / 26);
+    ctx.clip(face);
+    const cell = Math.max(3, (R1 - L1) / 18);
     let row = 0;
-    for (let cy = peakY; cy < postTopY + bandT; cy += cell, row++) {
+    for (let cy = O1y; cy < y1; cy += cell, row++) {
       let col = 0;
-      for (let cx = leftX - cell; cx < rightX; cx += cell, col++) {
+      for (let cx = L1 - cell; cx < R1; cx += cell, col++) {
         ctx.fillStyle = ((row + col) & 1) === 0 ? '#f4f4f4' : '#0d0d0d';
         ctx.fillRect(cx, cy, cell + 1, cell + 1);
       }
@@ -154,40 +150,16 @@ function drawStartFinishArch(p, q, x1, y1, h1, x2, y2, h2, shade) {
 
   ctx.strokeStyle = `rgba(225,230,240,${0.85*shade})`;
   ctx.lineWidth = Math.max(1.5, h1 * 0.035);
-  ctx.stroke(band);
+  ctx.stroke(face);
 
-  // ── START / FINISH sign on the peak ──
-  if (h1 > 7) {
-    const bW = spanX * 1.4;
-    const bH = Math.max(6, h1 * 0.24);
-    const bX = midX - bW / 2;
-    const bY = peakY - bH * 0.35;
-    ctx.fillStyle = `rgba(16,18,24,${0.94*shade})`;
-    ctx.fillRect(bX, bY, bW, bH);
-    const cb = Math.max(2, bH * 0.2);
-    const cells = Math.ceil(bW / cb);
-    for (let i = 0; i < cells; i++) {
-      ctx.fillStyle = i % 2 === 0 ? '#f4f4f4' : '#0d0d0d';
-      ctx.fillRect(bX + i * cb, bY, Math.min(cb, bW - i*cb), cb);
-    }
-    const fs = Math.max(7, bH * 0.5);
-    ctx.fillStyle = `rgba(255,255,255,${0.96*shade})`;
-    ctx.font = `bold ${fs}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('START / FINISH', midX, bY + bH * 0.62);
-  }
-
-  // ── Checkered base caps on the posts ──
-  const capH = Math.max(2, h1 * 0.06);
-  const capCells = 4;
-  const capW = pwBot * 1.6;
-  for (const px of [leftX, rightX]) {
-    const cw = capW / capCells;
-    for (let i = 0; i < capCells; i++) {
-      ctx.fillStyle = i % 2 === 0 ? '#f4f4f4' : '#0d0d0d';
-      ctx.fillRect(px - capW/2 + i*cw, baseY - capH, cw, capH);
-    }
+  // ── Solid base blocks where the arch meets the ground ──
+  const capH = Math.max(2, h1 * 0.08);
+  const capW = spanX1 * 0.3;
+  for (const bx of [L1, R1]) {
+    ctx.fillStyle = `rgb(${30+shade*20},${32+shade*20},${40+shade*22})`;
+    ctx.fillRect(bx - capW/2, y1 - capH, capW, capH);
+    ctx.fillStyle = `rgba(225,230,240,${0.5*shade})`;
+    ctx.fillRect(bx - capW/2, y1 - capH, capW, Math.max(1, capH * 0.22));
   }
 
   ctx.restore();

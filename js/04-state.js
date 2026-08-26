@@ -23,7 +23,6 @@ let crashTimer=0, camShake=0, distance=0;
 const maxSpeed=30000;
 
 let gear = 1;
-let isReverse = false;
 let rpm = 800;
 let shiftCooldown = 0;
 let shiftFlash = 0;
@@ -70,20 +69,18 @@ function startGame(){
   overlay.classList.add('hidden');
   lapCount = 0;
   lapTimes = [];
-  currentLapStart = 0; // armed: set when the car crosses the start/finish line
-  raceStarted = false;
   raceFinished = false;
   prevCompletedLaps = 0;
   position = START_POS; // 20 m before the start/finish line
   initEngineAudio();
   startMusic();
   if(engCtx && engCtx.state==='suspended') engCtx.resume();
+  startLights();
 }
 
 function restartGame(){
   gameOver=false;
   started=true;
-  isReverse = false;
   playerAngle=0; carHeading=0; roadAngle=0;
   damage=0; speed=0; playerX=0; distance=0;
   position = START_POS; // 20 m before the start/finish line
@@ -94,8 +91,6 @@ function restartGame(){
   generateCracks();
     lapCount = 0;
   lapTimes = [];
-  currentLapStart = 0; // armed: set when the car crosses the start/finish line
-  raceStarted = false;
   raceFinished = false;
   prevCompletedLaps = 0;
   overlay.classList.add('hidden');
@@ -110,6 +105,26 @@ function triggerGameOver(){
     <p class="go-sub">Your car took too much damage and broke down.</p>
     <p class="go-stat">📏 Distance traveled: <b>${(distance/100000).toFixed(2)} km</b></p>
     <p style="margin-top:10px;color:#89a">Final damage: 100%</p>
+    <p class="big" style="margin-top:30px">Press <b>Enter</b> / <b>R</b> / <b>START</b> to try again</p>
+  `;
+  overlay.classList.remove('hidden');
+}
+let fouled = false;
+function flagFoulStart(){
+  stopMusic();
+  fouled = true;
+  started = false;
+  speed = 0; accel = 0; braking = 0;
+  targetAccel = 0; targetBrake = 0;
+  lapCount = 0;
+  lapTimes = [];
+  raceFinished = false;
+  prevCompletedLaps = 0;
+  position = START_POS;
+  playerX = 0; playerAngle = 0; carHeading = 0; roadAngle = 0;
+  overlay.innerHTML=`
+    <h1 class="go-title" style="color:#f55">🚫 FOUL START</h1>
+    <p class="go-sub">You hit the gas before the green light.</p>
     <p class="big" style="margin-top:30px">Press <b>Enter</b> / <b>R</b> / <b>START</b> to try again</p>
   `;
   overlay.classList.remove('hidden');
@@ -186,21 +201,14 @@ function pollGamepad(){
   }
 
   if(shiftUpInput && !prevShiftUp && started && !gameOver && shiftCooldown<=0){
-    if(isReverse){
-      isReverse = false;
-      gear = 1;
-      shiftCooldown = 0.25;
-      shiftFlash = 1;
-    } else if(gear < NUM_GEARS){
+    if(gear < NUM_GEARS){
       gear++;
       shiftCooldown = 0.25;
       shiftFlash = 1;
     }
   }
   if(shiftDownInput && !prevShiftDown && started && !gameOver && shiftCooldown<=0){
-    if(isReverse){
-      // already in reverse, ignore
-    } else if(gear > 1){
+    if(gear > 1){
       const newGearCap = GEAR_MAX[gear - 2];
       if(speed > newGearCap * 1.5){
         const ratio = speed / newGearCap;
@@ -209,10 +217,6 @@ function pollGamepad(){
         applyDamage(dmg);
       }
       gear--;
-      shiftCooldown = 0.25;
-      shiftFlash = 1;
-    } else if(gear === 1 && speed < 500){
-      isReverse = true;
       shiftCooldown = 0.25;
       shiftFlash = 1;
     }

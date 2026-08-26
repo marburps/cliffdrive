@@ -39,9 +39,44 @@ const START_POS = TRACK_LENGTH - START_OFFSET_UNITS;
 let lapCount = 0;
 let lapTimes = [];
 let currentLapStart = 0;
-let raceStarted = false; // becomes true the moment the car crosses the start/finish line
+let raceGo = false; // true once the green light is up (timer armed)
+let raceStarted = false;
 let raceFinished = false;
 let prevCompletedLaps = 0;
+
+// ── START LIGHTS ──
+// 4 red lights (one per second), then the 5th turns green.
+const LIGHT_STEP_MS = 1000;
+const LIGHT_GO_MS = 4 * LIGHT_STEP_MS;
+let lightsPhase = 'idle'; // 'idle' | 'countdown' | 'go' | 'foul'
+let lightsStartT = 0;
+
+function lightState(){
+  if(lightsPhase==='foul') return {red:4, green:false};
+  if(lightsPhase==='go')   return {red:4, green:true};
+  if(lightsPhase==='countdown'){
+    const t = performance.now() - lightsStartT;
+    return {red:Math.max(0, Math.min(4, Math.floor(t / LIGHT_STEP_MS) + 1)), green:false};
+  }
+  return {red:0, green:false};
+}
+
+function startLights(){
+  lightsPhase = 'countdown';
+  lightsStartT = performance.now();
+  raceGo = false;
+  currentLapStart = 0;
+}
+
+function advanceLights(){
+  if(lightsPhase !== 'countdown') return;
+  if (fouled) return;
+  if (performance.now() - lightsStartT >= LIGHT_GO_MS) {
+    lightsPhase = 'go';
+    raceGo = true;
+    currentLapStart = performance.now(); // timer starts on green
+  }
+}
 
 // ── TUNNELS: entry positions in game units (100000 units = 1 km).
 //    Every tunnel shares the same length and layout. ──
