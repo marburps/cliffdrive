@@ -75,6 +75,7 @@ function startGame(){
   initEngineAudio();
   startMusic();
   if(engCtx && engCtx.state==='suspended') engCtx.resume();
+  fouled=false;
   startLights();
 }
 
@@ -89,13 +90,16 @@ function restartGame(){
   gear=1; rpm=800; shiftCooldown=0; shiftFlash=0;
   prevShiftUp=false; prevShiftDown=false;
   generateCracks();
-    lapCount = 0;
+  lapCount = 0;
   lapTimes = [];
   raceFinished = false;
   prevCompletedLaps = 0;
   overlay.classList.add('hidden');
+  fouled=false;
+  raceStarted=false;
   startMusic();
   if(engCtx && engCtx.state==='suspended') engCtx.resume();
+  startLights();
 }
 function triggerGameOver(){
   stopMusic();
@@ -113,6 +117,7 @@ let fouled = false;
 function flagFoulStart(){
   stopMusic();
   fouled = true;
+  lightsPhase = 'foul';
   started = false;
   speed = 0; accel = 0; braking = 0;
   targetAccel = 0; targetBrake = 0;

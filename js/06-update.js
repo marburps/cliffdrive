@@ -62,6 +62,12 @@ function update(dt){
   if(shiftCooldown > 0) shiftCooldown -= dt;
   if(shiftFlash > 0) shiftFlash *= Math.pow(0.02, dt);
 
+  // crossing the start/finish line before the green light is a foul
+  if(!raceGo && position >= TRACK_LENGTH){
+    flagFoulStart();
+    return;
+  }
+
   // The world only rotates when the CAR turns. No input → no world yaw,
   // so the road can never "pull" the car along it anymore.
   horizonOffset -= steer * 220 * dt;
@@ -130,15 +136,18 @@ function update(dt){
   distance += ds;
 
   // ── LAP DETECTION ──
-  const completedLaps = Math.floor(position / TRACK_LENGTH);
-  if (completedLaps > prevCompletedLaps) {
-    prevCompletedLaps = completedLaps;
-    if (!raceStarted) {
-      // First crossing of the start/finish line: the timer starts now.
+  // The car starts 20 m before the line, so crossing it is the first
+  // event and must NOT be recorded as a lap. A lap only completes on
+  // a subsequent crossing (crossings >= 2).
+  const completedCrossings = Math.floor(position / TRACK_LENGTH);
+  if (completedCrossings > prevCompletedLaps) {
+    prevCompletedLaps = completedCrossings;
+    if (completedCrossings < 2) {
+      // arm the lap 1 clock (it was set at the green light; fall back)
       raceStarted = true;
-      currentLapStart = performance.now();
+      if (!currentLapStart) currentLapStart = performance.now();
     } else {
-      lapCount = completedLaps - 1; // crossings count, not laps done yet
+      lapCount = completedCrossings - 1;
       const now = performance.now();
       lapTimes.push(now - currentLapStart);
       currentLapStart = now;

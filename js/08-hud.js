@@ -378,7 +378,7 @@ function roundRect(x,y,w,h,r){
 let lastT=0;
 function loop(t){
   const dt=Math.min((t-lastT)/1000,.05);lastT=t;
-  pollGamepad();update(dt);render();
+  pollGamepad();advanceLights();update(dt);render();
   updateEngineAudio();
   requestAnimationFrame(loop);
 }

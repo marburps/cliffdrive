@@ -152,6 +152,48 @@ function drawStartFinishArch(p, q, x1, y1, h1, x2, y2, h2, shade) {
   ctx.lineWidth = Math.max(1.5, h1 * 0.035);
   ctx.stroke(face);
 
+  // ── Start-light gantry (4 red + green), hung from the arch face ──
+  // NOTE: the arch peak (O1y) is above the top of the viewport when the
+  // arch is near, so the bar is anchored to a visible fraction of the
+  // arch height instead of on top of the peak.
+  if (h1 > 3) {
+    const ls = lightState();
+    const n = 5;
+    const lr = h1 * 0.045;                     // pure perspective scale (no px floor)
+    const gap = lr * 2.5;
+    const barW = n * gap + lr;
+    const barH = lr * 2.6;
+    const bx = x1 - barW / 2;
+    const by = y1 - archH1 * 0.60 - barH / 2;  // fixed relative to the arch
+    ctx.fillStyle = `rgba(12,14,20,${0.95*shade})`;
+    ctx.fillRect(bx, by, barW, barH);
+    ctx.strokeStyle = `rgba(225,230,240,${0.5*shade})`;
+    ctx.lineWidth = Math.max(1, h1 * 0.02);
+    ctx.strokeRect(bx, by, barW, barH);
+    for (let i = 0; i < n; i++) {
+      const lx = bx + lr + gap * i + gap / 2;
+      const ly = by + barH / 2;
+      const isGreen = i === n - 1;
+      const lit = isGreen ? ls.green : i < ls.red;
+      const red = isGreen ? 40 : 235;
+      const green = isGreen ? 235 : 30;
+      const blue = 30;
+      if (lit) {
+        ctx.shadowColor = isGreen ? 'rgba(40,255,80,0.9)' : 'rgba(255,40,40,0.9)';
+        ctx.shadowBlur = lr * 1.2;
+      } else {
+        ctx.shadowBlur = 0;
+      }
+      ctx.fillStyle = lit
+        ? `rgb(${red + 40},${green + 40},${blue + 40})`
+        : `rgba(${red},${green},${blue},0.25)`;
+      ctx.beginPath();
+      ctx.arc(lx, ly, lr * 0.85, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+  }
+
   // ── Solid base blocks where the arch meets the ground ──
   const capH = Math.max(2, h1 * 0.08);
   const capW = spanX1 * 0.3;

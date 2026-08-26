@@ -126,7 +126,7 @@ function drawLapHUD() {
   ctx.fillText(`LAP ${displayLap} / ${TOTAL_LAPS}`, bx + 12, by + 10);
 
   // Current lap time (live)
-  const elapsed = started && !raceFinished && raceStarted ? performance.now() - currentLapStart : 0;
+  const elapsed = started && !raceFinished && raceGo ? performance.now() - currentLapStart : 0;
   ctx.fillStyle = '#7df';
   ctx.font = 'bold 16px "Courier New", monospace';
   ctx.fillText(fmt(elapsed), bx + 12, by + 36);
