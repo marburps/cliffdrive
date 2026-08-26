@@ -56,6 +56,112 @@ function drawCockpit(){
   hg.addColorStop(1,'rgba(10,10,14,0.9)');
   ctx.fillStyle=hg;
   ctx.beginPath();ctx.moveTo(W*0.35,H);ctx.quadraticCurveTo(W*0.5,H-H*0.045,W*0.65,H);ctx.closePath();ctx.fill();
+
+  drawRearviewMirror();
+}
+
+/* ============================================================
+   REARVIEW MIRROR — mini render of the track behind the car
+   ============================================================ */
+function drawRearviewMirror(){
+  // mirror body: left dark pillar area, outside the windscreen
+  const mw = Math.max(60, W*0.075);
+  const mh = Math.max(90, H*0.16);
+  const mx = W*0.028;
+  const my = H*0.50;
+
+  ctx.save();
+
+  // mount neck into the door
+  ctx.strokeStyle='#15151e';
+  ctx.lineWidth=Math.max(2, mw*0.06);
+  ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(mx, my+mh*0.55);
+  ctx.lineTo(mx-Math.max(4, mw*0.12), my+mh*0.62);
+  ctx.stroke();
+
+  // frame
+  ctx.fillStyle='#11111a';
+  roundRect(mx-mw*0.06, my-mh*0.05, mw*1.12, mh*1.10, mw*0.07);
+  ctx.fill();
+  ctx.strokeStyle='#39414f';
+  ctx.lineWidth=1.5;
+  roundRect(mx-mw*0.06, my-mh*0.05, mw*1.12, mh*1.10, mw*0.07);
+  ctx.stroke();
+
+  // mirrored view, clipped to the glass
+  roundRect(mx, my, mw, mh, mw*0.05);
+  ctx.clip();
+
+  // sky + ground
+  const skyH=mh*0.45;
+  const sg=ctx.createLinearGradient(0,my,0,my+skyH);
+  sg.addColorStop(0,'#12263f'); sg.addColorStop(1,'#7db4dc');
+  ctx.fillStyle=sg;
+  ctx.fillRect(mx,my,mw,skyH);
+  const og=ctx.createLinearGradient(0,my+skyH,0,my+mh);
+  og.addColorStop(0,'#1c4066'); og.addColorStop(1,'#08141f');
+  ctx.fillStyle=og;
+  ctx.fillRect(mx,my+skyH,mw,mh-skyH);
+
+  // road receding behind the car (main-projection math with z going negative)
+  const nearY=my+mh*0.97, farY=my+skyH*0.8;
+  const cx=mx+mw*0.5;
+  const focal=Math.max(10, mw*0.12)/5;           // wide-angle: 1/4 focal = 4x field of view
+  const N=16;
+  const baseSeg=Math.floor(position/SEG_LEN);
+  const baseY = segments[baseSeg % ROAD_LEN].y;
+  const camH=280;
+  const playerWX=playerX*ROAD_HALF;
+
+  const pts=[];
+  let dcx=0, cxWorld=0;
+  for(let n=1;n<=N;n++){
+    const z=n*8;                                   // mirror depth per slice
+    const idx=(baseSeg-n+ROAD_LEN*4)%ROAD_LEN;
+    dcx += segments[idx].curve*8*CURVE_K;
+    cxWorld += -dcx;                              // mirrored: rear view inverts curve drift
+    const scale=focal/z;
+    const sy = farY + (camH - (segments[idx].y - baseY)*2.5) * scale * (nearY-farY)/camH;
+    const sx = cx + (cxWorld - playerWX) * scale;
+    pts.push({sx:Math.max(mx,Math.min(mx+mw+40,sx)), sy:Math.max(farY,Math.min(nearY,sy)), hw:Math.max(1,ROAD_HALF*scale)});
+  }
+
+  // draw far slice first
+  for(let i=N-1;i>=1;i--){
+    const a=pts[i], b=pts[i-1];
+    ctx.fillStyle='#343440';
+    ctx.beginPath();
+    ctx.moveTo(a.sx-a.hw,a.sy);ctx.lineTo(a.sx+a.hw,a.sy);
+    ctx.lineTo(b.sx+b.hw,b.sy);ctx.lineTo(b.sx-b.hw,b.sy);
+    ctx.closePath();ctx.fill();
+    if(a.hw>1.2){
+      const ew=Math.max(0.5,a.hw*0.08);
+      ctx.fillStyle='rgba(225,230,240,0.65)';
+      ctx.beginPath();ctx.moveTo(a.sx-a.hw,a.sy);ctx.lineTo(a.sx-a.hw+ew,a.sy);ctx.lineTo(b.sx-b.hw+ew*0.8,b.sy);ctx.lineTo(b.sx-b.hw,b.sy);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(a.sx+a.hw,a.sy);ctx.lineTo(a.sx+a.hw-ew,a.sy);ctx.lineTo(b.sx+b.hw-ew*0.8,b.sy);ctx.lineTo(b.sx+b.hw,b.sy);ctx.closePath();ctx.fill();
+      if(i%3===0){
+        const cw=Math.max(0.5,a.hw*0.05);
+        ctx.fillStyle='rgba(255,210,40,0.5)';
+        ctx.beginPath();ctx.moveTo(a.sx-cw/2,a.sy);ctx.lineTo(a.sx+cw/2,a.sy);ctx.lineTo(b.sx+cw*0.4,b.sy);ctx.lineTo(b.sx-cw*0.4,b.sy);ctx.closePath();ctx.fill();
+      }
+    }
+  }
+
+  // glass tint + specular streak
+  ctx.fillStyle='rgba(70,110,150,0.10)';
+  ctx.fillRect(mx,my,mw,mh);
+  const spg=ctx.createLinearGradient(mx,my,mx+mw,my+mh);
+  spg.addColorStop(0,'rgba(255,255,255,0)');
+  spg.addColorStop(0.35,'rgba(255,255,255,0)');
+  spg.addColorStop(0.45,'rgba(255,255,255,0.10)');
+  spg.addColorStop(0.55,'rgba(255,255,255,0)');
+  spg.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=spg;
+  ctx.fillRect(mx,my,mw,mh);
+
+  ctx.restore();
 }
 
 function drawSteeringWheel(cx,cy,r){
