@@ -1,0 +1,67 @@
+// 01-config.js — Configuration and tuning constants
+// Split from main.js (lines 1–61); keep load order in index.html.
+
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
+let W,H;
+function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}
+resize();addEventListener('resize',resize);
+const overlay=document.getElementById('overlay');
+let started=false, gameOver=false;
+
+const ROAD_LEN=6000,SEG_LEN=200,ROAD_HALF=2400,DRAW_DIST=150;
+const CURVE_K=0.005;
+const CLIFF_HEIGHT_RATIO=14;
+const HILL_HEIGHT_RATIO=2.8;
+const TREE_TYPES=[0,4,5];
+const BRAKE=10000;
+const DRAG=0.05;
+const DOWNSHIFT_DECEL=8000;
+const ENGINE_HP=450;
+const MAX_ACCEL=2800;
+const ELEVATION = 16;
+const CURVE_SHARPNESS = 5; // how sharp tha sharpest bends turn
+// ── steering model (free body) ─────────────────────────────────────
+// The car's heading is its own state: it changes ONLY from steering
+// input and the car's own speed. No road/segment value steers the car.
+const STEER_K = 0.00004; // car rotation: carHeading += steer · STEER_K · vW · dt
+const PHYS_K  = 0.000005;
+const CENTRIFUGAL_SPEED_REF   = 100; // speed where the old PHYS_K feels balanced (~100 km/h)
+const CENTRIFUGAL_SPEED_SCALE = 2.0;   // 0 = old behavior, 1 = 2× centrifugal effect at max speed
+const MAX_HEADING = 0.7; // safety cap on the camera's angle difference
+const OVERSTEER = 0.5;
+const BILLBOARD_TEXT = "X-LAN RACE"; // billboard text, max 10 chars
+
+// ── RACE / LAP STATE ──
+const TRACK_LENGTH = ROAD_LEN * SEG_LEN; // 1,200,000 units = 12 km
+const TOTAL_LAPS = 3;
+const START_OFFSET_UNITS = 20 * 100; // car starts 20 m BEFORE the start/finish line (100 units = 1 m)
+const START_POS = TRACK_LENGTH - START_OFFSET_UNITS;
+let lapCount = 0;
+let lapTimes = [];
+let currentLapStart = 0;
+let raceStarted = false; // becomes true the moment the car crosses the start/finish line
+let raceFinished = false;
+let prevCompletedLaps = 0;
+
+// ── TUNNELS: entry positions in game units (100000 units = 1 km).
+//    Every tunnel shares the same length and layout. ──
+const TUNNELS = [
+  100000,   // 1 km
+  600000,   // 6 km
+  800000,   // 8 km
+];
+const TUNNEL_LEN = 10000;              // 100 m each
+const TUNNEL_WALL_SIDE = 4.2;
+const TUNNEL_CEILING_H = 3.2;
+const TUNNEL_LIGHT_SPACING = 4;
+
+
+
+function getEngineAccel(rpm,gear){
+  if(rpm>=3000)return MAX_ACCEL;
+  const floor=[1500,1500,800,400,30,0][gear-1];
+  const t=Math.max(0,(rpm-500)/2500);
+  const s=t*t*(3-2*t);
+  return floor+s*(MAX_ACCEL-floor)/3.5;
+}
+
