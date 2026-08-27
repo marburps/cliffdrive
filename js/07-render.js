@@ -463,6 +463,40 @@ function drawBillboard(s, ssx, y1, sz, h1, shade) {
   }
 }
 
+// ── ONCOMING TRAFFIC ──
+function drawOncomingCar(sx, sy, carW, col, shade, rear){
+  carW = Math.max(1.2, carW);
+  const chh = carW * 0.52;
+  const a = 0.35 + 0.65 * shade;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.fillStyle = 'rgba(10,10,14,0.9)';
+  ctx.fillRect(sx - carW * 0.45, sy - chh * 0.22, carW * 0.18, chh * 0.26);
+  ctx.fillRect(sx + carW * 0.27, sy - chh * 0.22, carW * 0.18, chh * 0.26);
+  ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
+  roundRect(sx - carW / 2, sy - chh * 0.8, carW, chh * 0.64, carW * 0.09);
+  ctx.fill();
+  ctx.fillStyle = `rgb(${Math.min(255, col[0] + 55)},${Math.min(255, col[1] + 55)},${Math.min(255, col[2] + 55)})`;
+  roundRect(sx - carW * 0.34, sy - chh * 1.2, carW * 0.68, chh * 0.5, carW * 0.1);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(28,40,56,0.92)';
+  ctx.fillRect(sx - carW * 0.27, sy - chh * 1.14, carW * 0.54, chh * 0.32);
+  const ly = sy - chh * 0.56, lw = carW * 0.13, lh = chh * 0.13;
+  if (rear) {
+    ctx.shadowColor = 'rgba(255,40,30,0.85)';
+    ctx.shadowBlur = carW * 0.14;
+    ctx.fillStyle = 'rgba(255,45,35,0.95)';
+  } else {
+    ctx.shadowColor = 'rgba(255,240,200,0.85)';
+    ctx.shadowBlur = carW * 0.18;
+    ctx.fillStyle = 'rgba(255,244,210,0.98)';
+  }
+  ctx.fillRect(sx - carW * 0.4, ly, lw, lh);
+  ctx.fillRect(sx + carW * 0.4 - lw, ly, lw, lh);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
 // ==========================================================
 //  RENDER
 // ==========================================================
@@ -514,6 +548,17 @@ function render(){
   fg.addColorStop(.5,'rgba(170,200,230,.35)');
   fg.addColorStop(1,'rgba(170,200,230,0)');
   ctx.fillStyle=fg;ctx.fillRect(0,horizonY-35,W,65);
+
+  // oncoming cars are placed in the projection path by z (small in the
+// distance) and painted in the per-segment loop in the correct order
+  const oncomingCar=new Array(DRAW_DIST).fill(null);
+  for(const o of oncoming){
+    const z=o.pos-position;
+    if(z<SEG_LEN)continue;
+    const seg=Math.ceil(z/SEG_LEN);
+    if(seg-1>=DRAW_DIST)continue;
+    oncomingCar[seg-1]={z,lane:o.lane,col:o.col};
+  }
 
   const proj=[];
   let cxWorld=0,dcx=0;
@@ -619,6 +664,17 @@ function render(){
         const lw1=Math.max(.5,h1*.012),lw2=Math.max(.5,h2*.012);
         ctx.beginPath();ctx.moveTo(lx1-lw1/2,y1);ctx.lineTo(lx1+lw1/2,y1);ctx.lineTo(lx2+lw2/2,y2);ctx.lineTo(lx2-lw2/2,y2);ctx.closePath();ctx.fill();
       }
+    }
+
+    // oncoming car (left 2 lanes) — drawn between the road/sprites
+    const oc=oncomingCar[i];
+    if(oc){
+      const zP=(i+1-pct)*SEG_LEN;
+      const t=Math.max(0,Math.min(1,(oc.z-zP)/SEG_LEN));
+      const osx=x1+(x2-x1)*t+oc.lane*(h1+(h2-h1)*t);
+      const osy=y1+(y2-y1)*t;
+      const oenv=(h1+(h2-h1)*t)*0.5;
+      if(oenv>1)drawOncomingCar(osx,osy,oenv*0.5,oc.col,shade,false);
     }
 
     // sprites

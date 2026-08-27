@@ -210,6 +210,25 @@ function update(dt){
   camShake *= .9;
   damageFlash *= 0.93;
   updatePopups(dt);
+
+  // ── ONCOMING TRAFFIC ──
+  // Spawn once the race is live, every 45–75 s on average (60 s mean).
+  if (raceGo) {
+    oncomingIn -= dt;
+    if (oncomingIn <= 0) {
+      oncoming.push({
+        pos: position + ONC_SPAWN_AHEAD + (Math.random() * 0.5 - 0.25) * SEG_LEN,
+        lane: ONC_LANES[(Math.random() * ONC_LANES.length) | 0],
+        col: ONC_COLORS[(Math.random() * ONC_COLORS.length) | 0]
+      });
+      oncomingIn = 45 + Math.random() * 30;
+    }
+  }
+  for (let i = oncoming.length - 1; i >= 0; i--) {
+    const o = oncoming[i];
+    o.pos -= ONC_SPEED * dt; // fixed 100 km/h relative to the road
+    if (o.pos < position - ONC_BEHIND_CULL) oncoming.splice(i, 1);
+  }
 }
 
 function updatePopups(dt){

@@ -100,3 +100,13 @@ function getEngineAccel(rpm,gear){
   return floor+s*(MAX_ACCEL-floor)/3.5;
 }
 
+// ── ONCOMING TRAFFIC ───────────────────────────────────────────
+// 4 lanes: player drives the right 2, oncoming traffic the left 2.
+const ONC_SPEED=10000;                     // 100 km/h relative to the ROAD (dash: speed/100 = km/h)
+const ONC_LANES=[-0.25,-0.7];              // left 2 lane centers (right of center = player side)
+const ONC_SPAWN_AHEAD=DRAW_DIST*SEG_LEN;   // spawn at the draw limit → small in the distance, grows in
+const ONC_BEHIND_CULL=16*SEG_LEN;          // drop a car once it is fully behind the rearview glass
+const ONC_COLORS=[[200,48,44],[48,92,190],[222,224,232],[42,44,52],[212,160,52],[52,152,92]];
+let oncoming=[];                           // {pos, lane, col} — pos in absolute track units
+let oncomingIn=12;                         // seconds (after green) until the first oncoming car
+

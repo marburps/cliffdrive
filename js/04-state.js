@@ -76,6 +76,7 @@ function startGame(){
   startMusic();
   if(engCtx && engCtx.state==='suspended') engCtx.resume();
   fouled=false;
+  oncoming=[]; oncomingIn=12;
   startLights();
 }
 
@@ -97,6 +98,7 @@ function restartGame(){
   overlay.classList.add('hidden');
   fouled=false;
   raceStarted=false;
+  oncoming=[]; oncomingIn=12;
   startMusic();
   if(engCtx && engCtx.state==='suspended') engCtx.resume();
   startLights();
@@ -127,6 +129,7 @@ function flagFoulStart(){
   prevCompletedLaps = 0;
   position = START_POS;
   playerX = 0; playerAngle = 0; carHeading = 0; roadAngle = 0;
+  oncoming=[]; oncomingIn=12;
   overlay.innerHTML=`
     <h1 class="go-title" style="color:#f55">🚫 FOUL START</h1>
     <p class="go-sub">You hit the gas before the green light.</p>
