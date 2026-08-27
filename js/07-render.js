@@ -45,7 +45,7 @@ function drawTunnelHeadlights(x1, y1, h1, shade) {
 
 function drawTunnelSign() {
   const trackLen = ROAD_LEN * SEG_LEN;
-  const lapPos = ((position % trackLen) + trackLen) % trackLen;
+  const lapPos = ((P.position % trackLen) + trackLen) % trackLen;
 
   // nearest upcoming tunnel entry within 300 m
   let distToEntry = null;
@@ -368,7 +368,7 @@ function drawTunnelStrip(p, q, x1, y1, h1, x2, y2, h2, shade) {
 }
 
 function drawTunnelOverlay() {
-  const idx = Math.floor(position / SEG_LEN) % ROAD_LEN;
+  const idx = Math.floor(P.position / SEG_LEN) % ROAD_LEN;
   if (!segments[idx].tunnel && !segments[(idx + 1) % ROAD_LEN].tunnel) return;
 
   const horizonY = Math.floor(H * 0.45);
@@ -405,7 +405,6 @@ function drawTunnelOverlay() {
 
 // ── TUNNEL AUDIO ────────────────────────────────────────────
 let tunnelAudioCtx = null;
-let wasInTunnel = false;
 
 function tunnelChime(type) {
   if (!tunnelAudioCtx) tunnelAudioCtx = new AudioContext();
@@ -498,18 +497,38 @@ function drawOncomingCar(sx, sy, carW, col, shade, rear){
 }
 
 // ==========================================================
-//  RENDER
+//  SPLIT-SCREEN RENDER — two half-height viewports (P1 top, P2 bottom)
 // ==========================================================
-function render(){
+function renderAll(){
+  W=CVW; H=Math.floor(CVH/2);
+  for(let i=0;i<2;i++){
+    ctx.save();
+    ctx.translate(0, i*(CVH/2));
+    ctx.beginPath();
+    ctx.rect(0,0,W,H);
+    ctx.clip();
+    P=players[i];
+    renderPlayer(players[1-i], i);
+    ctx.restore();
+  }
+  // divider between the two screens
+  ctx.fillStyle='#05070c';
+  ctx.fillRect(0,CVH*0.5-Math.max(3,CVH*0.005),CVW,Math.max(6,CVH*0.01));
+  ctx.fillStyle='rgba(110,150,210,0.30)';
+  ctx.fillRect(0,CVH*0.5-1,CVW,2);
+}
+
+// render one player's viewport; `other` = the other player (drawn into this view)
+function renderPlayer(other, idx){
   ctx.save();
-  if(camShake>.01)ctx.translate((Math.random()-.5)*camShake*25,(Math.random()-.5)*camShake*25);
+  if(P.camShake>.01)ctx.translate((Math.random()-.5)*P.camShake*25,(Math.random()-.5)*P.camShake*25);
 
   const horizonY=Math.floor(H*.45);
   const focal=H*.95;
   const camH=280;
-  const baseSeg=Math.floor(position/SEG_LEN);
-  const pct=(position%SEG_LEN)/SEG_LEN;
-  const playerWX=playerX*ROAD_HALF;
+  const baseSeg=Math.floor(P.position/SEG_LEN);
+  const pct=(P.position%SEG_LEN)/SEG_LEN;
+  const playerWX=P.playerX*ROAD_HALF;
   const _sy0 = segments[baseSeg % ROAD_LEN].y;
   const _sy1 = segments[(baseSeg + 1) % ROAD_LEN].y;
   const playerY = _sy0 + (_sy1 - _sy0) * pct;
@@ -535,7 +554,7 @@ function render(){
   ctx.fillStyle=og;ctx.fillRect(0,horizonY,W,H-horizonY);
   ctx.globalAlpha=.1;
   for(let i=0;i<40;i++){
-    const ox=((i*197+position*.012)%(W+200))-100;
+    const ox=((i*197+P.position*.012)%(W+200))-100;
     const oy=horizonY+8+(i*43)%(H-horizonY-8);
     ctx.fillStyle='#aaddff';ctx.fillRect(ox,oy,12+(i%5)*12,1.2);
   }
@@ -549,15 +568,25 @@ function render(){
   fg.addColorStop(1,'rgba(170,200,230,0)');
   ctx.fillStyle=fg;ctx.fillRect(0,horizonY-35,W,65);
 
-  // oncoming cars are placed in the projection path by z (small in the
-// distance) and painted in the per-segment loop in the correct order
+  // traffic cars (oncoming + the OTHER PLAYER) are placed in the projection
+  // path by z (small in the distance) and painted in the per-segment loop
+  // in the correct order
   const oncomingCar=new Array(DRAW_DIST).fill(null);
   for(const o of oncoming){
-    const z=o.pos-position;
+    const z=o.pos-P.position;
     if(z<SEG_LEN)continue;
     const seg=Math.ceil(z/SEG_LEN);
     if(seg-1>=DRAW_DIST)continue;
-    oncomingCar[seg-1]={z,lane:o.lane,col:o.col};
+    oncomingCar[seg-1]={z,lane:o.lane,col:o.col,rear:false,label:null};
+  }
+  // the other player's car (same direction → we see its rear)
+  {
+    const oz=other.position-P.position;
+    if(oz>=SEG_LEN){
+      const seg=Math.ceil(oz/SEG_LEN);
+      if(seg-1>=0&&seg-1<DRAW_DIST&&!oncomingCar[seg-1])
+        oncomingCar[seg-1]={z:oz,lane:other.playerX,col:other.carCol,rear:true,label:other.name};
+    }
   }
 
   const proj=[];
@@ -572,7 +601,7 @@ function render(){
     const scale=focal/z;
     // -playerAngle*z : the camera looks along the CAR's heading, so the
     // road at distance z is offset by the car's heading divergence
-    const sx=W/2+(cxWorld - playerWX - playerAngle*z)*scale;
+    const sx=W/2+(cxWorld - playerWX - P.playerAngle*z)*scale;
     const ELEV_EXAG=2.5;
     const sy=horizonY+(camH-(segments[idx].y-playerY)*ELEV_EXAG)*scale;
     const hw=ROAD_HALF*scale;
@@ -666,7 +695,7 @@ function render(){
       }
     }
 
-    // oncoming car (left 2 lanes) — drawn between the road/sprites
+    // traffic car (oncoming = front, other player = rear) — drawn between road/sprites
     const oc=oncomingCar[i];
     if(oc){
       const zP=(i+1-pct)*SEG_LEN;
@@ -674,7 +703,17 @@ function render(){
       const osx=x1+(x2-x1)*t+oc.lane*(h1+(h2-h1)*t);
       const osy=y1+(y2-y1)*t;
       const oenv=(h1+(h2-h1)*t)*0.5;
-      if(oenv>1)drawOncomingCar(osx,osy,oenv*0.5,oc.col,shade,false);
+      if(oenv>1)drawOncomingCar(osx,osy,oenv*0.5,oc.col,shade,oc.rear);
+      // P1/P2 tag above the other player's car
+      if(oc.label&&oenv>7){
+        ctx.save();
+        ctx.globalAlpha=0.35+0.65*Math.max(0,1-i/DRAW_DIST);
+        ctx.fillStyle='rgba(255,255,255,0.95)';
+        ctx.font='bold '+Math.max(8,oenv*0.5)+'px sans-serif';
+        ctx.textAlign='center';
+        ctx.fillText(oc.label,osx,osy-oenv*0.95);
+        ctx.restore();
+      }
     }
 
     // sprites
@@ -768,8 +807,8 @@ function render(){
   }
 
   // speed lines
-  if(speed>maxSpeed*.55){
-    const si=(speed/maxSpeed-.55)/.45;
+  if(P.speed>maxSpeed*.55){
+    const si=(P.speed/maxSpeed-.55)/.45;
     ctx.globalAlpha=si*.22;ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
     for(let i=0;i<12;i++){
       const ly=H*.28+(i-6)*40;
@@ -784,28 +823,39 @@ function render(){
   drawWindshieldCracks(horizonY);
   drawCockpit();
 
-  if(navigator.getGamepads){
-    const pads=navigator.getGamepads();
-    for(const p of pads)if(p&&p.connected){
-      ctx.fillStyle='rgba(255,255,255,.4)';ctx.font='12px sans-serif';ctx.textAlign='left';
-      ctx.fillText('\uD83C\uDFAE '+p.id.substring(0,28),22,22);break;
-    }
-  }
+  const conns=connectedPads();
+    const gp=conns[idx]||null;
+    const ctl=gp?('\uD83C\uDFAE '+gp.id.substring(0,24)):(idx===0?'\u2328 P1: W A S D':'\u2190\u2191\u2192\u2193 P2: arrows');
+    ctx.fillStyle='rgba(255,255,255,.55)';ctx.font='bold 13px sans-serif';ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    ctx.fillText((idx===0?'P1 (top)':'P2 (bottom)')+'  \u00B7  '+ctl,14,H-14);
 
-  if(crashTimer>0){
-    ctx.fillStyle=`rgba(255,30,30,${crashTimer*.18})`;ctx.fillRect(0,0,W,H);
+  if(P.crashTimer>0 && P.out!=='wrecked'){
+    ctx.fillStyle=`rgba(255,30,30,${P.crashTimer*.18})`;ctx.fillRect(0,0,W,H);
     ctx.fillStyle='#fff';ctx.font='bold '+Math.min(42,W*.033)+'px sans-serif';ctx.textAlign='center';
-    ctx.fillText(crashReason==='headon'
+    ctx.fillText(P.crashReason==='headon'
       ? '\uD83D\uDCA5 HEAD ON COLLISION! \uD83D\uDCA5'
       : '\u26A0\uFE0F OFF THE ROAD! \u26A0\uFE0F',W/2,H/2);
   }
 
-  if(damageFlash>0.02){
-    ctx.fillStyle=`rgba(255,80,0,${damageFlash*0.12})`;
+  if(P.out==='wrecked'){
+    ctx.fillStyle='rgba(12,0,0,0.5)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fff';ctx.font='bold '+Math.min(44,W*.035)+'px sans-serif';ctx.textAlign='center';
+    ctx.fillText('\uD83D\uDCA5 '+P.name+' WRECKED',W/2,H*.42);
+    ctx.fillStyle='#fbb';ctx.font='bold '+Math.min(16,W*.014)+'px sans-serif';
+    ctx.fillText('You are out \u2014 the race continues without you.',W/2,H*.52);
+  } else if(P.out==='finished'){
+    const total=P.lapTimes.reduce((a,b)=>a+b,0);
+    ctx.fillStyle='rgba(0,20,10,0.4)';ctx.fillRect(0,H*.32,W,H*.11);
+    ctx.fillStyle='#4f8';ctx.font='bold '+Math.min(20,W*.017)+'px sans-serif';ctx.textAlign='center';
+    ctx.fillText('\uD83C\uDFC1 '+P.name+' FINISHED \u2014 '+fmtTime(total),W/2,H*.385);
+  }
+
+  if(P.damageFlash>0.02){
+    ctx.fillStyle=`rgba(255,80,0,${P.damageFlash*0.12})`;
     ctx.fillRect(0,0,W,H);
   }
 
-  for(const pop of damagePopups){
+  for(const pop of P.damagePopups){
     const alpha=Math.min(1,pop.life);
     ctx.fillStyle=`rgba(255,60,30,${alpha})`;
     ctx.font='bold '+Math.min(36,W*.028)+'px sans-serif';
@@ -819,21 +869,26 @@ function render(){
 }
 
 // ── WINDSHIELD CRACKS ──
+// crack seeds are normalized (0..1) so they scale to each half-height viewport
 function drawWindshieldCracks(horizonY){
-  if(damage<20)return;
-  const numCracks=Math.min(crackSeeds.length,Math.floor((damage-10)/12)+1);
+  if(P.damage<20)return;
+  if(!P.crackSeeds.length)return;
+  const numCracks=Math.min(P.crackSeeds.length,Math.floor((P.damage-10)/12)+1);
   ctx.save();
-  ctx.globalAlpha=Math.min(0.6,(damage-15)/80);
+  ctx.globalAlpha=Math.min(0.6,(P.damage-15)/80);
   ctx.strokeStyle='rgba(200,220,255,0.7)';
   ctx.lineWidth=1.2;
   for(let i=0;i<numCracks;i++){
-    const pts=crackSeeds[i];
+    const pts=P.crackSeeds[i];
     if(!pts||pts.length<2)continue;
     ctx.beginPath();
-    ctx.moveTo(pts[0].x,pts[0].y);
-    for(let j=1;j<pts.length;j++)ctx.lineTo(pts[j].x,pts[j].y);
+    const hx=W*0.1, hy0=H*0.06, hw=W*0.8, hh=H*0.5;   // windscreen area
+    ctx.moveTo(hx+pts[0].x*hw,hy0+pts[0].y*hh);
+    for(let j=1;j<pts.length;j++)ctx.lineTo(hx+pts[j].x*hw,hy0+pts[j].y*hh);
     ctx.stroke();
   }
   ctx.restore();
 }
+
+
 

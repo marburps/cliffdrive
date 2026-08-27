@@ -110,10 +110,10 @@ function drawRearviewMirror(){
   const cx=mx+mw*0.5;
   const focal=Math.max(10, mw*0.12)/5;           // wide-angle: 1/4 focal = 4x field of view
   const N=16;
-  const baseSeg=Math.floor(position/SEG_LEN);
+  const baseSeg=Math.floor(P.position/SEG_LEN);
   const baseY = segments[baseSeg % ROAD_LEN].y;
   const camH=280;
-  const playerWX=playerX*ROAD_HALF;
+  const playerWX=P.playerX*ROAD_HALF;
 
   const pts=[];
   let dcx=0, cxWorld=0;
@@ -165,7 +165,7 @@ function drawRearviewMirror(){
 }
 
 function drawSteeringWheel(cx,cy,r){
-  ctx.save();ctx.translate(cx,cy);ctx.rotate(steer*0.95);
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(P.steer*0.95);
   ctx.fillStyle='rgba(0,0,0,0.4)';
   ctx.beginPath();ctx.ellipse(0,r*0.15,r*1.05,r*0.4,0,0,Math.PI*2);ctx.fill();
   ctx.lineWidth=r*0.2;ctx.strokeStyle='#0a0a10';
@@ -196,7 +196,7 @@ function drawSteeringWheel(cx,cy,r){
 function drawTachometer(cx,cy,r){
   const MAX_RPM=8500;
   const REDLINE=7000;
-  const rpmFrac=Math.min(1,rpm/MAX_RPM);
+  const rpmFrac=Math.min(1,P.rpm/MAX_RPM);
   const a0=Math.PI*0.75;
   const a1=Math.PI*2.25;
   const aNow=a0+(a1-a0)*rpmFrac;
@@ -245,7 +245,7 @@ function drawTachometer(cx,cy,r){
   ctx.font='bold '+Math.max(8,r*0.11)+'px sans-serif';
   ctx.fillText('RPM',cx,cy-r*0.35);
 
-  const inRedZone=rpm>=REDLINE;
+  const inRedZone=P.rpm>=REDLINE;
   ctx.strokeStyle=inRedZone?'#ff2222':'#ffcc22';
   ctx.lineWidth=Math.max(2.5,r*0.04);
   ctx.lineCap='round';
@@ -265,18 +265,18 @@ function drawTachometer(cx,cy,r){
   ctx.fillStyle=inRedZone?'#ff4444':'#aaffcc';
   ctx.font='bold '+Math.max(12,r*0.2)+'px "Courier New",monospace';
   ctx.textAlign='center';ctx.textBaseline='alphabetic';
-  ctx.fillText(Math.round(rpm).toString(),cx,cy+r*0.55);
+  ctx.fillText(Math.round(P.rpm).toString(),cx,cy+r*0.55);
 
   ctx.fillStyle='#ffffff';
   ctx.font='bold '+Math.max(14,r*0.3)+'px "Courier New",monospace';
   ctx.textAlign='center';
-  ctx.fillText(gear.toString(),cx+r*0.35,cy+r*0.05);
+  ctx.fillText(P.gear.toString(),cx+r*0.35,cy+r*0.05);
   ctx.fillStyle='#667';
   ctx.font=Math.max(7,r*0.09)+'px sans-serif';
   ctx.fillText('GEAR',cx+r*0.35,cy+r*0.2);
 
-  if(shiftFlash>0.05){
-    ctx.fillStyle=`rgba(100,200,255,${shiftFlash*0.15})`;
+  if(P.shiftFlash>0.05){
+    ctx.fillStyle=`rgba(100,200,255,${P.shiftFlash*0.15})`;
     ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
   }
   ctx.restore();
@@ -284,7 +284,7 @@ function drawTachometer(cx,cy,r){
 
 function drawSpeedo(cx,cy,r){
   const maxK=340;
-  const kmh=Math.round(speed/100);
+  const kmh=Math.round(P.speed/100);
   const frac=Math.min(1,kmh/maxK);
   const a0=Math.PI*0.75;
   const a1=Math.PI*2.25;
@@ -299,7 +299,7 @@ function drawSpeedo(cx,cy,r){
   ctx.strokeStyle='#3a3a4c';ctx.lineWidth=3;
   ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
 
-  const gearCapKmh=GEAR_MAX[gear-1]/100;
+  const gearCapKmh=GEAR_MAX[P.gear-1]/100;
   const gearCapFrac=Math.min(1,gearCapKmh/maxK);
   const gearCapAngle=a0+(a1-a0)*gearCapFrac;
   ctx.strokeStyle='rgba(80,180,255,0.7)';
@@ -347,13 +347,13 @@ function drawSpeedo(cx,cy,r){
   ctx.fillText(kmh,cx,cy+r*0.55);
   ctx.font=Math.max(9,r*0.11)+'px sans-serif';ctx.fillStyle='#6a8';
   ctx.fillText('km/h',cx,cy+r*0.74);
-  if(braking>0.15){
-    ctx.fillStyle=`rgba(255,60,60,${0.4+braking*0.55})`;
+  if(P.braking>0.15){
+    ctx.fillStyle=`rgba(255,60,60,${0.4+P.braking*0.55})`;
     ctx.font='bold '+Math.max(10,r*0.15)+'px sans-serif';
     ctx.fillText('BRAKE',cx,cy-r*0.62);
   }
-  if(accel>0.15){
-    ctx.fillStyle=`rgba(90,255,140,${0.35+accel*0.4})`;
+  if(P.accel>0.15){
+    ctx.fillStyle=`rgba(90,255,140,${0.35+P.accel*0.4})`;
     ctx.font='bold '+Math.max(9,r*0.12)+'px sans-serif';
     ctx.fillText('THROTTLE',cx,cy-r*0.78);
   }
@@ -374,7 +374,7 @@ function drawRightCluster(cx,cy,r){
   ctx.fillStyle='#8fc';
   ctx.font='bold '+Math.max(11,r*0.36)+'px "Courier New",monospace';
   ctx.textAlign='center';ctx.textBaseline='alphabetic';
-  const d=(distance/100000).toFixed(2);
+  const d=(P.distance/100000).toFixed(2);
   ctx.fillText(d+' km',cx,cy-hh/2+r*0.38);
   ctx.fillStyle='#789';ctx.font=Math.max(8,r*0.18)+'px sans-serif';
   ctx.fillText('DISTANCE',cx,cy-hh/2+r*0.58);
@@ -389,7 +389,7 @@ function drawRightCluster(cx,cy,r){
   for(let g=1;g<=6;g++){
     const t=(g-1)/5;
     const gy=sBot-t*stickH;
-    const active=(g===gear);
+    const active=(g===P.gear);
     ctx.fillStyle=active?'rgba(120,230,255,0.95)':'rgba(140,150,170,0.45)';
     ctx.beginPath();
     ctx.arc(cx+stickW/2+r*0.1,gy,active?r*0.045:r*0.03,0,Math.PI*2);
@@ -406,7 +406,7 @@ function drawRightCluster(cx,cy,r){
     ctx.stroke();
   }
 
-  const knobY=sBot-((gear-1)/5)*stickH;
+  const knobY=sBot-((P.gear-1)/5)*stickH;
   const kR=r*0.14;
   const kGrad=ctx.createRadialGradient(cx-kR*0.3,knobY-kR*0.3,kR*0.1,cx,knobY,kR);
   kGrad.addColorStop(0,'#aef');
@@ -419,8 +419,8 @@ function drawRightCluster(cx,cy,r){
   ctx.fillStyle='rgba(255,255,255,0.25)';
   ctx.beginPath();ctx.arc(cx-kR*0.25,knobY-kR*0.25,kR*0.3,0,Math.PI*2);ctx.fill();
 
-  if(shiftFlash>0.05){
-    ctx.fillStyle=`rgba(100,220,255,${shiftFlash*0.18})`;
+  if(P.shiftFlash>0.05){
+    ctx.fillStyle=`rgba(100,220,255,${P.shiftFlash*0.18})`;
     roundRect(cx-stickW*1.5,sTop-stickW,stickW*3,stickH+stickW*2,stickW);ctx.fill();
   }
 
@@ -428,16 +428,16 @@ function drawRightCluster(cx,cy,r){
   const dmgY=dmgLabelY+r*0.12;
   const dmgW=r*1.5,dmgH=Math.max(6,r*0.16);
   const dmgX=cx-dmgW/2;
-  ctx.fillStyle=damage>70?'#f55':damage>40?'#fa0':'#8c8';
+  ctx.fillStyle=P.damage>70?'#f55':P.damage>40?'#fa0':'#8c8';
   ctx.font='bold '+Math.max(9,r*0.22)+'px sans-serif';
   ctx.textAlign='center';
-  ctx.fillText('DAMAGE '+Math.round(damage)+'%',cx,dmgLabelY);
+  ctx.fillText('DAMAGE '+Math.round(P.damage)+'%',cx,dmgLabelY);
   ctx.fillStyle='rgba(0,0,0,0.6)';
   roundRect(dmgX,dmgY,dmgW,dmgH,3);ctx.fill();
   ctx.strokeStyle='rgba(100,120,140,0.4)';ctx.lineWidth=1;
   roundRect(dmgX,dmgY,dmgW,dmgH,3);ctx.stroke();
-  if(damage>0){
-    const fillW=dmgW*(damage/100);
+  if(P.damage>0){
+    const fillW=dmgW*(P.damage/100);
     const dGrad=ctx.createLinearGradient(dmgX,0,dmgX+dmgW,0);
     dGrad.addColorStop(0,'#2ecc40');
     dGrad.addColorStop(0.4,'#ffdc00');
@@ -446,7 +446,7 @@ function drawRightCluster(cx,cy,r){
     ctx.fillStyle=dGrad;
     roundRect(dmgX,dmgY,fillW,dmgH,3);ctx.fill();
   }
-  if(damage>70){
+  if(P.damage>70){
     const pulse=0.5+0.5*Math.sin(performance.now()*0.008);
     ctx.strokeStyle=`rgba(255,50,50,${0.3+pulse*0.5})`;
     ctx.lineWidth=2;
@@ -454,8 +454,8 @@ function drawRightCluster(cx,cy,r){
   }
 
   // EDGE WARNING
-  if(started&&!gameOver&&crashTimer<=0){
-    const absPX=Math.abs(playerX);
+  if(started&&!P.out&&P.crashTimer<=0){
+    const absPX=Math.abs(P.playerX);
     if(absPX>0.30){
       const t=Math.min(1,(absPX-0.30)/0.30);
       const pulse=0.4+0.6*Math.sin(performance.now()*0.01*(4+t*8));
@@ -484,8 +484,11 @@ function roundRect(x,y,w,h,r){
 let lastT=0;
 function loop(t){
   const dt=Math.min((t-lastT)/1000,.05);lastT=t;
-  pollGamepad();advanceLights();update(dt);render();
-  updateEngineAudio();
+  pollInputs();
+  advanceLights();
+  update(dt);
+  renderAll();
+  for(const pl of players) pl.engine.update(pl);
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);

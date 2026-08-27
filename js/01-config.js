@@ -2,8 +2,15 @@
 // Split from main.js (lines 1–61); keep load order in index.html.
 
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
-let W,H;
-function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}
+// CVW/CVH = true canvas pixel size. W/H = CURRENT VIEWPORT size — they are
+// switched per player before each viewport render (H = CVH/2 in 2-player
+// split-screen), so every draw call auto-scales to its half of the screen.
+let CVW, CVH;
+let W, H;
+function resize(){
+  CVW=canvas.width=innerWidth; CVH=canvas.height=innerHeight;
+  W=CVW; H=Math.floor(CVH/2);
+}
 resize();addEventListener('resize',resize);
 const overlay=document.getElementById('overlay');
 let started=false, gameOver=false;
@@ -36,13 +43,9 @@ const TRACK_LENGTH = ROAD_LEN * SEG_LEN; // 1,200,000 units = 12 km
 const TOTAL_LAPS = 3;
 const START_OFFSET_UNITS = 20 * 100; // car starts 20 m BEFORE the start/finish line (100 units = 1 m)
 const START_POS = TRACK_LENGTH - START_OFFSET_UNITS;
-let lapCount = 0;
-let lapTimes = [];
-let currentLapStart = 0;
-let raceGo = false; // true once the green light is up (timer armed)
-let raceStarted = false;
-let raceFinished = false;
-let prevCompletedLaps = 0;
+let raceGo = false; // shared start: true once the green light is up (timer armed)
+// lapCount / lapTimes / currentLapStart / raceStarted / raceFinished /
+// prevCompletedLaps are per-player now → see players[] in 04-state.js
 
 // ── START LIGHTS ──
 // 4 red lights (one per second), then the 5th turns green.
@@ -65,7 +68,7 @@ function startLights(){
   lightsPhase = 'countdown';
   lightsStartT = performance.now();
   raceGo = false;
-  currentLapStart = 0;
+  for(const pl of players) pl.currentLapStart = 0;
 }
 
 function advanceLights(){
@@ -74,7 +77,8 @@ function advanceLights(){
   if (performance.now() - lightsStartT >= LIGHT_GO_MS) {
     lightsPhase = 'go';
     raceGo = true;
-    currentLapStart = performance.now(); // timer starts on green
+    const now = performance.now();           // timer starts on green (per player)
+    for(const pl of players) pl.currentLapStart = now;
   }
 }
 
@@ -99,6 +103,18 @@ function getEngineAccel(rpm,gear){
   const s=t*t*(3-2*t);
   return floor+s*(MAX_ACCEL-floor)/3.5;
 }
+
+// ── TWO-PLAYER GRID ───────────────────────────────────────────
+// 4 lanes (normalized, road half-width = 1): oncoming left 2, player right 2.
+// P1 (top) starts in lane 3 (2nd from the right), P2 (bottom) in lane 4
+// (rightmost drivable lane — the hard off-road edge is at ±0.6).
+const P1_START_LANE = 0.21;   // center of lane 3 (inner right lane, spans 0..0.42)
+const P2_START_LANE = 0.51;   // center of lane 4 (outer right lane, usable 0.42..0.6)
+const P1_CAR_COLOR = [236, 64, 64];    // player 1's car, as seen by player 2
+const P2_CAR_COLOR = [64, 132, 236];   // player 2's car, as seen by player 1
+const CARCAR_LATERAL_HIT = 0.15;       // player-vs-player lateral overlap (normalized; ~car width, keeps the 0.25 grid gap bump-free)
+const CARCAR_DAMAGE = 10;              // % damage each car takes on player contact
+let players = [];                      // [P1, P2] — built in 05-audio.js (after the audio factories load)
 
 // ── ONCOMING TRAFFIC ───────────────────────────────────────────
 // 4 lanes: player drives the right 2, oncoming traffic the left 2.

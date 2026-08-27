@@ -73,11 +73,21 @@ function drawMinimap(){
   ctx.fillStyle='#000';
   ctx.fillRect(sf.x-1,sf.y-1,2,2);
 
-  // player dot
-  const pi=Math.floor(position/SEG_LEN)%ROAD_LEN;
+  // both player dots (self on top; a nudge so they don't overlap on the grid)
+  const otherP = players[1-P.idx];
+  ctx.shadowColor='rgba(80,220,255,0.9)';
+  ctx.shadowBlur=7;
+  ctx.fillStyle='#59e3ff';
+  {
+    const pi=Math.floor(otherP.position/SEG_LEN)%ROAD_LEN;
+    const pp=toMap(pi);
+    ctx.beginPath();ctx.arc(pp.x+4,pp.y+4,4,0,Math.PI*2);ctx.fill();
+  }
+  ctx.shadowBlur=0;ctx.strokeStyle='#fff';ctx.lineWidth=1.2;ctx.stroke();
+  const pi=Math.floor(P.position/SEG_LEN)%ROAD_LEN;
   const pp=toMap(pi);
   ctx.shadowColor='rgba(255,255,0,0.9)';
-  ctx.shadowBlur=10;
+  ctx.shadowBlur=9;
   ctx.fillStyle='#ffee00';
   ctx.beginPath();
   ctx.arc(pp.x,pp.y,5,0,Math.PI*2);
@@ -97,55 +107,61 @@ function drawMinimap(){
 }
 
 function drawLapHUD() {
-  if (!started && !raceFinished) return;
+  if (!started && !gameOver) return;
   const fmt = ms => {
     const s = ms / 1000;
     const m = Math.floor(s / 60);
     const sec = (s % 60).toFixed(2);
     return m + ':' + (sec < 10 ? '0' : '') + sec;
   };
+  const pl = P;
 
   const bx = 14, by = 14;
-  const bw = 200, bh = raceFinished ? 40 + lapTimes.length * 28 + 50 : 40 + lapTimes.length * 28 + 30;
+  const bw = 210, bh = pl.raceFinished ? 44 + pl.lapTimes.length * 28 + 50 : 44 + pl.lapTimes.length * 28 + 30;
 
   ctx.save();
   ctx.fillStyle = 'rgba(4,8,18,0.72)';
   roundRect(bx, by, bw, bh, 10);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(70,130,200,0.45)';
+  ctx.strokeStyle = pl.idx === 0 ? 'rgba(255,120,120,0.5)' : 'rgba(110,180,255,0.5)';
   ctx.lineWidth = 1.5;
   roundRect(bx, by, bw, bh, 10);
   ctx.stroke();
 
-  // Current lap
-  const displayLap = Math.min(lapCount + 1, TOTAL_LAPS);
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 20px "Courier New", monospace';
+  // header: which player's screen this is
+  ctx.fillStyle = pl.idx === 0 ? '#f99' : '#9cf';
+  ctx.font = 'bold 12px "Courier New", monospace';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
-  ctx.fillText(`LAP ${displayLap} / ${TOTAL_LAPS}`, bx + 12, by + 10);
+  ctx.fillText(pl.idx === 0 ? 'P1 — TOP' : 'P2 — BOTTOM', bx + 12, by + 6);
+
+  // Current lap
+  const displayLap = Math.min(pl.lapCount + 1, TOTAL_LAPS);
+  ctx.fillStyle = pl.out === 'wrecked' ? '#f66' : '#fff';
+  ctx.font = 'bold 20px "Courier New", monospace';
+  ctx.fillText(`LAP ${displayLap} / ${TOTAL_LAPS}${pl.out === 'wrecked' ? '  💥' : pl.out === 'finished' ? '  🏁' : ''}`, bx + 12, by + 24);
 
   // Current lap time (live)
-  const elapsed = started && !raceFinished && raceGo ? performance.now() - currentLapStart : 0;
+  const elapsed = started && !pl.raceFinished && raceGo ? performance.now() - pl.currentLapStart : 0;
   ctx.fillStyle = '#7df';
   ctx.font = 'bold 16px "Courier New", monospace';
-  ctx.fillText(fmt(elapsed), bx + 12, by + 36);
+  ctx.fillText(fmt(elapsed), bx + 12, by + 48);
 
   // Previous laps
-  for (let i = 0; i < lapTimes.length; i++) {
-    const y = by + 60 + i * 28;
-    const isBest = raceFinished && lapTimes[i] === Math.min(...lapTimes);
+  for (let i = 0; i < pl.lapTimes.length; i++) {
+    const y = by + 72 + i * 28;
+    const isBest = pl.raceFinished && pl.lapTimes[i] === Math.min(...pl.lapTimes);
     ctx.fillStyle = isBest ? '#4f8' : '#8899aa';
     ctx.font = '14px "Courier New", monospace';
-    ctx.fillText(`  Lap ${i + 1}: ${fmt(lapTimes[i])}${isBest ? ' 🏆' : ''}`, bx + 12, y);
+    ctx.fillText(`  Lap ${i + 1}: ${fmt(pl.lapTimes[i])}${isBest ? ' 🏆' : ''}`, bx + 12, y);
   }
 
-  if (raceFinished) {
-    const best = Math.min(...lapTimes);
-    const y = by + 60 + lapTimes.length * 28;
+  if (pl.raceFinished && pl.lapTimes.length) {
+    const total = pl.lapTimes.reduce((a, b) => a + b, 0);
+    const y = by + 72 + pl.lapTimes.length * 28;
     ctx.fillStyle = '#4f8';
     ctx.font = 'bold 16px "Courier New", monospace';
-    ctx.fillText(`BEST: ${fmt(best)}`, bx + 12, y);
+    ctx.fillText(`TOTAL: ${fmt(total)}`, bx + 12, y);
   }
 
   ctx.restore();
@@ -183,7 +199,7 @@ const buildings = (() => {
 })();
 function drawHorizon(){
   const hy=Math.floor(H*.45);
-  const base=((horizonOffset%VW)+VW)%VW;
+  const base=((P.horizonOffset%VW)+VW)%VW;
   for(let t=0;t<2;t++){
     const dx=base-VW+t*VW;
     ctx.fillStyle='#5a7ea6';
