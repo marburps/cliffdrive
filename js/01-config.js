@@ -107,6 +107,9 @@ const ONC_LANES=[-0.25,-0.7];              // left 2 lane centers (right of cent
 const ONC_SPAWN_AHEAD=DRAW_DIST*SEG_LEN;   // spawn at the draw limit → small in the distance, grows in
 const ONC_BEHIND_CULL=16*SEG_LEN;          // drop a car once it is fully behind the rearview glass
 const ONC_COLORS=[[200,48,44],[48,92,190],[222,224,232],[42,44,52],[212,160,52],[52,152,92]];
+const ONC_CAR_HIT_HALF=400;                  // swept hitbox: half a car length (100 units = 1 m)
+const ONC_LATERAL_HIT=0.30;                  // lateral (lane) overlap for a collision, normalized
+const ONC_COLLISION_DAMAGE=30;               // % damage taken when hitting an oncoming car
 let oncoming=[];                           // {pos, lane, col} — pos in absolute track units
 let oncomingIn=12;                         // seconds (after green) until the first oncoming car
 

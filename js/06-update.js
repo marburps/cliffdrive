@@ -132,6 +132,7 @@ function update(dt){
   // The car keeps moving in the direction it points. Split that motion
   // into "along the road" and "across the road":
   const ds = vW * Math.cos(psi) * dt;
+  const posBefore = position;
   position += ds;
   distance += ds;
 
@@ -187,10 +188,12 @@ function update(dt){
     speed *= .93;
   }
   if(playerX > 0.6){
+    crashReason='road';
     crashTimer=2.5; camShake=1; speed=0; playerX=0.6;
     applyDamage(calculateDamage());
   }
   if(playerX < -0.6){
+    crashReason='road';
     crashTimer=2.5; camShake=1; speed=0; playerX=-0.6;
     applyDamage(calculateDamage());
   }
@@ -227,7 +230,24 @@ function update(dt){
   for (let i = oncoming.length - 1; i >= 0; i--) {
     const o = oncoming[i];
     o.pos -= ONC_SPEED * dt; // fixed 100 km/h relative to the road
-    if (o.pos < position - ONC_BEHIND_CULL) oncoming.splice(i, 1);
+    if (o.pos < position - ONC_BEHIND_CULL) { oncoming.splice(i, 1); continue; }
+
+    // ── COLLISION WITH ONCOMING CAR ──
+    // Lanes: hit only if the player laterally overlaps this car's lane.
+    if (Math.abs(playerX - o.lane) < ONC_LATERAL_HIT) {
+      // Swept 1D overlap of both cars' paths this frame (dt-proof at any
+      // relative speed), each padded by half a car length:
+      const pLo = Math.min(posBefore, position), pHi = Math.max(posBefore, position);
+      const oPrev = o.pos + ONC_SPEED * dt;
+      const oLo = Math.min(oPrev, o.pos), oHi = Math.max(oPrev, o.pos);
+      if (Math.max(pLo - ONC_CAR_HIT_HALF, oLo - ONC_CAR_HIT_HALF) <=
+          Math.min(pHi + ONC_CAR_HIT_HALF, oHi + ONC_CAR_HIT_HALF)) {
+        oncoming.splice(i, 1); // the oncoming car vanishes
+        crashReason = 'headon';
+        crashTimer = 2.5; camShake = 1; speed = 0;
+        applyDamage(ONC_COLLISION_DAMAGE);
+      }
+    }
   }
 }
 

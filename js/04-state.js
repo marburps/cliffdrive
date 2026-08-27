@@ -20,6 +20,7 @@ let horizonOffset=0;
 let accel=0, braking=0, steer=0;
 let targetAccel=0, targetBrake=0, steerRaw=0;
 let crashTimer=0, camShake=0, distance=0;
+let crashReason='road'; // 'road' | 'headon' — selects the crash message
 const maxSpeed=30000;
 
 let gear = 1;
@@ -86,7 +87,7 @@ function restartGame(){
   playerAngle=0; carHeading=0; roadAngle=0;
   damage=0; speed=0; playerX=0; distance=0;
   position = START_POS; // 20 m before the start/finish line
-  accel=0; braking=0; steer=0; crashTimer=0; camShake=0;
+  accel=0; braking=0; steer=0; crashTimer=0; camShake=0; crashReason='road';
   prevPlayerX=0; lateralVel=0; damageFlash=0; damagePopups=[];
   gear=1; rpm=800; shiftCooldown=0; shiftFlash=0;
   prevShiftUp=false; prevShiftDown=false;

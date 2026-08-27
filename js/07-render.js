@@ -795,7 +795,9 @@ function render(){
   if(crashTimer>0){
     ctx.fillStyle=`rgba(255,30,30,${crashTimer*.18})`;ctx.fillRect(0,0,W,H);
     ctx.fillStyle='#fff';ctx.font='bold '+Math.min(42,W*.033)+'px sans-serif';ctx.textAlign='center';
-    ctx.fillText('\u26A0\uFE0F OFF THE ROAD! \u26A0\uFE0F',W/2,H/2);
+    ctx.fillText(crashReason==='headon'
+      ? '\uD83D\uDCA5 HEAD ON COLLISION! \uD83D\uDCA5'
+      : '\u26A0\uFE0F OFF THE ROAD! \u26A0\uFE0F',W/2,H/2);
   }
 
   if(damageFlash>0.02){
