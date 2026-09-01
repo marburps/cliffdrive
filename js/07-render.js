@@ -465,34 +465,68 @@ function drawBillboard(s, ssx, y1, sz, h1, shade) {
 // ── ONCOMING TRAFFIC ──
 function drawOncomingCar(sx, sy, carW, col, shade, rear){
   carW = Math.max(1.2, carW);
-  const chh = carW * 0.52;
+  const H = carW * 0.36;
   const a = 0.35 + 0.65 * shade;
+  const li = v => Math.min(255, v + 60);
+  const dk = v => Math.max(0, v - 55);
+  const R = col[0], Gc = col[1], B = col[2];
+  const by = sy - H * 0.58;
   ctx.save();
   ctx.globalAlpha = a;
-  ctx.fillStyle = 'rgba(10,10,14,0.9)';
-  ctx.fillRect(sx - carW * 0.45, sy - chh * 0.22, carW * 0.18, chh * 0.26);
-  ctx.fillRect(sx + carW * 0.27, sy - chh * 0.22, carW * 0.18, chh * 0.26);
-  ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`;
-  roundRect(sx - carW / 2, sy - chh * 0.8, carW, chh * 0.64, carW * 0.09);
+  ctx.fillStyle = 'rgba(0,0,0,0.38)';
+  ctx.beginPath(); ctx.ellipse(sx, sy, carW * 0.5, Math.max(1, H * 0.14), 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#0a0a0e';
+  roundRect(sx - carW * 0.48, sy - H * 0.46, carW * 0.15, H * 0.48, carW * 0.04); ctx.fill();
+  roundRect(sx + carW * 0.33, sy - H * 0.46, carW * 0.15, H * 0.48, carW * 0.04); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(sx - carW * 0.44, by + H * 0.10);
+  ctx.lineTo(sx - carW * 0.30, sy - H * 0.94);
+  ctx.quadraticCurveTo(sx, sy - H * 1.08, sx + carW * 0.30, sy - H * 0.94);
+  ctx.lineTo(sx + carW * 0.44, by + H * 0.10);
+  ctx.closePath();
+  ctx.fillStyle = `rgb(${li(R)},${li(Gc)},${li(B)})`;
   ctx.fill();
-  ctx.fillStyle = `rgb(${Math.min(255, col[0] + 55)},${Math.min(255, col[1] + 55)},${Math.min(255, col[2] + 55)})`;
-  roundRect(sx - carW * 0.34, sy - chh * 1.2, carW * 0.68, chh * 0.5, carW * 0.1);
+  ctx.fillStyle = `rgb(${R},${Gc},${B})`;
+  roundRect(sx - carW / 2, by, carW, H * 0.42, carW * 0.14);
   ctx.fill();
-  ctx.fillStyle = 'rgba(28,40,56,0.92)';
-  ctx.fillRect(sx - carW * 0.27, sy - chh * 1.14, carW * 0.54, chh * 0.32);
-  const ly = sy - chh * 0.56, lw = carW * 0.13, lh = chh * 0.13;
+  ctx.beginPath();
+  ctx.moveTo(sx - carW * 0.28, by - H * 0.02);
+  ctx.lineTo(sx - carW * 0.24, sy - H * 0.84);
+  ctx.quadraticCurveTo(sx, sy - H * 0.96, sx + carW * 0.24, sy - H * 0.84);
+  ctx.lineTo(sx + carW * 0.28, by - H * 0.02);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(20,32,48,0.92)';
+  ctx.fill();
   if (rear) {
-    ctx.shadowColor = 'rgba(255,40,30,0.85)';
-    ctx.shadowBlur = carW * 0.14;
+    ctx.shadowColor = 'rgba(255,40,30,0.9)';
+    ctx.shadowBlur = carW * 0.12;
     ctx.fillStyle = 'rgba(255,45,35,0.95)';
+    roundRect(sx - carW * 0.40, by + H * 0.08, carW * 0.8, Math.max(1, H * 0.07), H * 0.03);
+    ctx.fill();
+    roundRect(sx - carW * 0.46, by + H * 0.04, carW * 0.12, H * 0.12, H * 0.03);
+    ctx.fill();
+    roundRect(sx + carW * 0.34, by + H * 0.04, carW * 0.12, H * 0.12, H * 0.03);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(10,10,14,0.9)';
+    ctx.beginPath(); ctx.arc(sx - carW * 0.08, by + H * 0.32, Math.max(1, carW * 0.035), 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(sx + carW * 0.08, by + H * 0.32, Math.max(1, carW * 0.035), 0, 7); ctx.fill();
   } else {
-    ctx.shadowColor = 'rgba(255,240,200,0.85)';
-    ctx.shadowBlur = carW * 0.18;
-    ctx.fillStyle = 'rgba(255,244,210,0.98)';
+    ctx.shadowColor = 'rgba(255,240,200,0.9)';
+    ctx.shadowBlur = carW * 0.16;
+    ctx.fillStyle = 'rgba(255,246,214,0.98)';
+    roundRect(sx - carW * 0.42, by + H * 0.06, carW * 0.2, Math.max(1, H * 0.07), H * 0.03);
+    ctx.fill();
+    roundRect(sx + carW * 0.22, by + H * 0.06, carW * 0.2, Math.max(1, H * 0.07), H * 0.03);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(8,8,12,0.85)';
+    roundRect(sx - carW * 0.26, by + H * 0.24, carW * 0.52, H * 0.12, H * 0.04);
+    ctx.fill();
   }
-  ctx.fillRect(sx - carW * 0.4, ly, lw, lh);
-  ctx.fillRect(sx + carW * 0.4 - lw, ly, lw, lh);
-  ctx.shadowBlur = 0;
+  ctx.fillStyle = `rgba(${dk(R)},${dk(Gc)},${dk(B)},0.9)`;
+  roundRect(sx - carW * 0.46, sy - H * 0.06, carW * 0.92, H * 0.08, carW * 0.03);
+  ctx.fill();
   ctx.restore();
 }
 
