@@ -120,7 +120,7 @@ let players = [];                      // [P1, P2] — built in 05-audio.js (aft
 // 4 lanes: player drives the right 2, oncoming traffic the left 2.
 const ONC_SPEED=10000;                     // 100 km/h relative to the ROAD (dash: speed/100 = km/h)
 const ONC_LANES=[-0.25,-0.7];              // left 2 lane centers (right of center = player side)
-const ONC_SPAWN_AHEAD=DRAW_DIST*SEG_LEN;   // spawn at the draw limit → small in the distance, grows in
+const ONC_SPAWN_AHEAD=DRAW_DIST*SEG_LEN;   // spawn at the draw limit ahead of the FIELD (frontmost player) → small in the distance, grows in
 const ONC_BEHIND_CULL=16*SEG_LEN;          // drop a car once it is fully behind the rearview glass
 const ONC_COLORS=[[200,48,44],[48,92,190],[222,224,232],[42,44,52],[212,160,52],[52,152,92]];
 const ONC_CAR_HIT_HALF=400;                  // swept hitbox: half a car length (100 units = 1 m)

@@ -192,13 +192,16 @@ function updatePlayer(dt){
 function updateWorld(dt){
   if(!started || gameOver) return;
   const behindPos = Math.min(players[0].position, players[1].position);
+  const frontPos  = Math.max(players[0].position, players[1].position);
 
   // Spawn once the race is live, every 45–75 s on average (60 s mean).
+  // Spawn ahead of the FRONTMOST car so the car lives on the track ahead of
+  // both players; each viewport sees it enter its own draw window in turn.
   if (raceGo) {
     oncomingIn -= dt;
     if (oncomingIn <= 0) {
       oncoming.push({
-        pos: behindPos + ONC_SPAWN_AHEAD + (Math.random() * 0.5 - 0.25) * SEG_LEN,
+        pos: frontPos + ONC_SPAWN_AHEAD + (Math.random() * 0.5 - 0.25) * SEG_LEN,
         lane: ONC_LANES[(Math.random() * ONC_LANES.length) | 0],
         col: ONC_COLORS[(Math.random() * ONC_COLORS.length) | 0]
       });
