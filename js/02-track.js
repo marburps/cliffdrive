@@ -9,19 +9,8 @@
 // Pre-declare track2D before the IIFE runs (hoisted)
 const track2D={x:new Float32Array(ROAD_LEN),y:new Float32Array(ROAD_LEN)};
 
-const gpsControl=[
-  [50.3444,6.9442],[50.3431,6.9447],[50.3412,6.9458],[50.3400,6.9482],
-  [50.3425,6.9531],[50.3478,6.9569],[50.3533,6.9619],[50.3556,6.9658],
-  [50.3601,6.9634],[50.3644,6.9617],[50.3678,6.9619],[50.3706,6.9539],
-  [50.3689,6.9442],[50.3719,6.9408],[50.3756,6.9411],[50.3764,6.9367],
-  [50.3775,6.9333],[50.3794,6.9339],[50.3789,6.9372],[50.3769,6.9419],
-  [50.3758,6.9458],[50.3711,6.9583],[50.3681,6.9664],[50.3664,6.9686],
-  [50.3625,6.9744],[50.3592,6.9747],[50.3558,6.9792],[50.3533,6.9794],
-  [50.3514,6.9819],[50.3475,6.9839],[50.3458,6.9856],[50.3442,6.9897],
-  [50.3444,6.9944],[50.3472,6.9983],[50.3486,7.0017],[50.3469,7.0039],
-  [50.3442,7.0036],[50.3436,6.9997],[50.3428,6.9919],[50.3414,6.9692],
-  [50.3421,6.9602]
-];
+// GPS control points now live in tracks/track1.js
+const gpsControl=Track1.gps;
 
 // Convert GPS → 2D meters (equirectangular, centered on track centroid)
 (function(){
@@ -118,14 +107,8 @@ for(let i=0;i<ROAD_LEN;i++){
 //   1.00 Antoniusbuche (0)
 function elevationAt(t){
   // Smooth piecewise using cosine interpolation between key points
-  const keys=[
-    [0.00,0],[0.04,-12],[0.08,5],[0.12,55],[0.16,80],
-    [0.20,110],[0.22,120],[0.26,90],[0.30,40],[0.32,20],
-    [0.36,50],[0.40,120],[0.44,170],[0.45,190],[0.48,175],
-    [0.52,140],[0.55,100],[0.60,70],[0.65,45],[0.68,30],
-    [0.72,50],[0.76,160],[0.79,170],[0.82,140],[0.86,90],
-    [0.90,50],[0.94,10],[0.97,-10],[1.00,0]
-  ];
+  // (elevation profile is defined in tracks/track1.js)
+  const keys=Track1.elevation;
   // Find surrounding keys
   let lo=0,hi=keys.length-1;
   for(let i=0;i<keys.length-1;i++){
@@ -203,16 +186,9 @@ for (const startUnit of TUNNELS) {
   segments[endSeg   % ROAD_LEN].tunnelExit = true;
 }
 
-// 30 billboards, left/hill side, unique random segments (skip tunnels)
-{
-  const used = new Set();
-  let placed = 0;
-  while (placed < 30) {
-    const segIdx = Math.floor(Math.random() * ROAD_LEN);
-    if (used.has(segIdx) || segments[segIdx].tunnel) continue;
-    used.add(segIdx);
-    segments[segIdx].sprites.push({ side: -1, type: 6, off: 0.9 + Math.random() * 0.5 });
-    placed++;
-  }
+// Billboards — fixed positions from tracks/track1.js (type 6 = billboard)
+for (const [segIdx, side, off] of Track1.billboards) {
+  if (segments[segIdx].tunnel) continue; // never place inside a tunnel
+  segments[segIdx].sprites.push({ side, type: 6, off });
 }
 

@@ -1,6 +1,6 @@
 # CliffDrive
 
-A 2D top-down racing game on a Nordschleife-style circuit, built as a **vibe coding test with qwen3.8:27b running locally on a laptop with an RTX 5080**. The entire game was prompted into existence conversationally — no build step, no dependencies, just HTML5 Canvas and vanilla JavaScript.
+A 2-player split-screen racing game on a Nordschleife-style circuit, built as a **vibe coding test with qwen3.8:27b running locally on a laptop with an RTX 5080**. The entire game was prompted into existence conversationally — no build step, no dependencies, just HTML5 Canvas and vanilla JavaScript.
 
 ## How to Run
 

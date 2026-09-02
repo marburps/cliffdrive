@@ -19,14 +19,14 @@ const ROAD_LEN=6000,SEG_LEN=200,ROAD_HALF=2400,DRAW_DIST=150;
 const CURVE_K=0.005;
 const CLIFF_HEIGHT_RATIO=14;
 const HILL_HEIGHT_RATIO=2.8;
-const TREE_TYPES=[0,4,5];
+const TREE_TYPES=Track1.treeTypes;
 const BRAKE=10000;
 const DRAG=0.05;
 const DOWNSHIFT_DECEL=8000;
 const ENGINE_HP=450;
 const MAX_ACCEL=2800;
 const ELEVATION = 16;
-const CURVE_SHARPNESS = 5; // how sharp tha sharpest bends turn
+const CURVE_SHARPNESS = Track1.curveSharpness; // how sharp the sharpest bends turn
 // ── steering model (free body) ─────────────────────────────────────
 // The car's heading is its own state: it changes ONLY from steering
 // input and the car's own speed. No road/segment value steers the car.
@@ -36,12 +36,12 @@ const CENTRIFUGAL_SPEED_REF   = 100; // speed where the old PHYS_K feels balance
 const CENTRIFUGAL_SPEED_SCALE = 2.0;   // 0 = old behavior, 1 = 2× centrifugal effect at max speed
 const MAX_HEADING = 0.7; // safety cap on the camera's angle difference
 const OVERSTEER = 0.5;
-const BILLBOARD_TEXT = "X-LAN RACE"; // billboard text, max 10 chars
+const BILLBOARD_TEXT = Track1.billboardText; // billboard text, max 10 chars
 
-// ── RACE / LAP STATE ──
+// ── RACE / LAP STATE ── (track-defined in tracks/track1.js)
 const TRACK_LENGTH = ROAD_LEN * SEG_LEN; // 1,200,000 units = 12 km
-const TOTAL_LAPS = 3;
-const START_OFFSET_UNITS = 20 * 100; // car starts 20 m BEFORE the start/finish line (100 units = 1 m)
+const TOTAL_LAPS = Track1.totalLaps;
+const START_OFFSET_UNITS = Track1.startOffsetUnits; // car starts 20 m BEFORE the start/finish line (100 units = 1 m)
 const START_POS = TRACK_LENGTH - START_OFFSET_UNITS;
 let raceGo = false; // shared start: true once the green light is up (timer armed)
 // lapCount / lapTimes / currentLapStart / raceStarted / raceFinished /
@@ -83,16 +83,12 @@ function advanceLights(){
 }
 
 // ── TUNNELS: entry positions in game units (100000 units = 1 km).
-//    Every tunnel shares the same length and layout. ──
-const TUNNELS = [
-  100000,   // 1 km
-  600000,   // 6 km
-  800000,   // 8 km
-];
-const TUNNEL_LEN = 10000;              // 100 m each
-const TUNNEL_WALL_SIDE = 4.2;
-const TUNNEL_CEILING_H = 3.2;
-const TUNNEL_LIGHT_SPACING = 4;
+//    Every tunnel shares the same length and layout. ── (from tracks/track1.js)
+const TUNNELS = Track1.tunnels;
+const TUNNEL_LEN = Track1.tunnelLen;              // 100 m each
+const TUNNEL_WALL_SIDE = Track1.tunnelWallSide;
+const TUNNEL_CEILING_H = Track1.tunnelCeilingH;
+const TUNNEL_LIGHT_SPACING = Track1.tunnelLightSpacing;
 
 
 
